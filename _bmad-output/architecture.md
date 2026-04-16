@@ -7,14 +7,30 @@ template: architecture-template-v2
 templateVariant: backend
 sourceDocuments:
   - _bmad-output/prd.md
-status: 'draft'
+  - _bmad-output/domain-model.md
+status: 'draft — superseded-in-part by domain-model.md'
 revision: 1
-revisionNotes: 'Initial yolo-mode architecture draft covering CRDs, controllers, Run lifecycle (StatefulSet+PVC), webhook ingress, Claude Code sandbox contract, and Helm/CI tooling. Based on prd.md revision 3.'
+revisionNotes: 'Initial yolo-mode architecture draft covering CRDs, controllers, Run lifecycle (StatefulSet+PVC), webhook ingress, Claude Code sandbox contract, and Helm/CI tooling. Based on prd.md revision 3. NOTE: Per LF review on AD-38 (2026-04-16), the domain-model framing in sections High-Level Overview, Data Models, Components, and Core Workflows is being reworked under `_bmad-output/domain-model.md`. Those sections are DRAFT-STALE pending domain alignment.'
 ---
 
 # Routines Architecture Document
 
 **Author:** Winston (Architect) · **Date:** 2026-04-16 · **Mode:** yolo
+
+> ## ⚠️ Domain-model rework in flight (2026-04-16)
+>
+> LF's review on [AD-38](https://github.com/a2d2-dev/Routines/pull/1) called out that the v1 domain framing muddles three roles: Trigger (signal source), Gateway (policy/routing — missing in v1), and Run vs. Runner (Mission vs. Execution). The corrected model is in **[`_bmad-output/domain-model.md`](./domain-model.md)** and must be read **before** the sections below.
+>
+> Sections flagged `DRAFT-STALE` will be reworked to conform once the domain model is ack'd:
+>
+> - `High Level Overview` (data flow) — `DRAFT-STALE`
+> - `High Level Project Diagram` — `DRAFT-STALE`
+> - `Data Models` (esp. Trigger / RoutineRun / new Gateway aggregate) — `DRAFT-STALE`
+> - `Components` (replace "Trigger Router" with `Gateway` subsystem) — `DRAFT-STALE`
+> - `Core Workflows` (insert Gateway step in all sequence diagrams) — `DRAFT-STALE`
+> - `REST API Spec` (Webhook ingress is now a thin adapter fronting the Gateway) — `DRAFT-STALE`
+>
+> Sections **unaffected** by the domain rework and still binding: `Tech Stack`, `Run Lifecycle Design`, `Database Schema`, `Source Tree`, `Infrastructure and Deployment`, `Error Handling Strategy`, `Coding Standards`, `Test Strategy`.
 
 ## Introduction
 
