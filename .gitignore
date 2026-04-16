@@ -30,3 +30,9 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Claude Code local state
+.claude/
+
+# BMAD toolchain (regenerate via scaffold)
+_bmad/
