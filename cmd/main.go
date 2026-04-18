@@ -178,11 +178,40 @@ func main() {
 		os.Exit(1)
 	}
 
+	gatewayURL := os.Getenv("AGENT_GATEWAY_URL")
+	agentImage := os.Getenv("AGENT_IMAGE")
+
 	if err := (&controller.RoutineReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		GatewayURL: gatewayURL,
+		AgentImage: agentImage,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "Routine")
+		os.Exit(1)
+	}
+	if err := (&controller.ScheduleTriggerReconciler{
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		GatewayURL: gatewayURL,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "ScheduleTrigger")
+		os.Exit(1)
+	}
+	if err := (&controller.WebhookTriggerReconciler{
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		GatewayURL: gatewayURL,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "WebhookTrigger")
+		os.Exit(1)
+	}
+	if err := (&controller.GitHubTriggerReconciler{
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		GatewayURL: gatewayURL,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "GitHubTrigger")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

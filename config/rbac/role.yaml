@@ -37,9 +37,9 @@ rules:
   - update
   - watch
 - apiGroups:
-  - routines.a2d2.dev
+  - batch
   resources:
-  - routines
+  - cronjobs
   verbs:
   - create
   - delete
@@ -51,14 +51,41 @@ rules:
 - apiGroups:
   - routines.a2d2.dev
   resources:
-  - routines/finalizers
+  - connectorbindings
   verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - routines.a2d2.dev
+  resources:
+  - githubtriggers
+  - routines
+  - scheduletriggers
+  - webhooktriggers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - routines.a2d2.dev
+  resources:
+  - githubtriggers/status
+  - routines/status
+  - scheduletriggers/status
+  - webhooktriggers/status
+  verbs:
+  - get
+  - patch
   - update
 - apiGroups:
   - routines.a2d2.dev
   resources:
-  - routines/status
+  - routines/finalizers
+  - scheduletriggers/finalizers
   verbs:
-  - get
-  - patch
   - update
