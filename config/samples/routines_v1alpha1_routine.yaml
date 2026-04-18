@@ -1,0 +1,23 @@
+apiVersion: routines.a2d2.dev/v1alpha1
+kind: Routine
+metadata:
+  name: nightly-issue-triage
+  namespace: default
+  labels:
+    app.kubernetes.io/name: routines
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  prompt:
+    inline: |
+      Look at the latest 5 open issues in Linear, triage them by priority,
+      add appropriate labels, and post a summary comment on each.
+  repositoryRef:
+    name: company-backend-repo
+  connectorBindingRefs:
+    - name: anthropic-credentials
+    - name: linear-reader
+  triggerRefs:
+    - kind: ScheduleTrigger
+      name: nightly-2am
+  maxDurationSeconds: 1800
+  suspend: false

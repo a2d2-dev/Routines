@@ -1,0 +1,93 @@
+---
+# ClusterRole for the Controller — manages CRD objects cluster-wide plus StatefulSets/PVCs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "routines.fullname" . }}-controller
+  labels:
+    {{- include "routines.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+rules:
+  # Core CRDs
+  - apiGroups: ["routines.a2d2.dev"]
+    resources: ["routines", "routines/status", "routines/finalizers"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["routines.a2d2.dev"]
+    resources:
+      - "scheduletriggers"
+      - "webhooktriggers"
+      - "githubtriggers"
+      - "connectorbindings"
+    verbs: ["get", "list", "watch"]
+  # StatefulSets and PVCs managed by the Controller
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Secrets (read-only — for ConnectorBinding credential injection)
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+  # Events
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  # Leader election
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "routines.fullname" . }}-controller
+  labels:
+    {{- include "routines.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "routines.fullname" . }}-controller
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "routines.controller.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+# Role for the Gateway — namespace-scoped reads for CRDs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "routines.fullname" . }}-gateway
+  labels:
+    {{- include "routines.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+rules:
+  - apiGroups: ["routines.a2d2.dev"]
+    resources:
+      - "routines"
+      - "scheduletriggers"
+      - "webhooktriggers"
+      - "githubtriggers"
+      - "connectorbindings"
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "routines.fullname" . }}-gateway
+  labels:
+    {{- include "routines.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "routines.fullname" . }}-gateway
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "routines.gateway.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}

@@ -1,0 +1,8 @@
+## Append samples of your project ##
+resources:
+- routines_v1alpha1_routine.yaml
+- routines_v1alpha1_scheduletrigger.yaml
+- routines_v1alpha1_webhooktrigger.yaml
+- routines_v1alpha1_githubtrigger.yaml
+- routines_v1alpha1_connectorbinding.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

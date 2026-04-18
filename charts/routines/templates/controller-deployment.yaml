@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "routines.fullname" . }}-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "routines.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+spec:
+  replicas: {{ .Values.controller.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "routines.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        {{- include "routines.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: controller
+    spec:
+      serviceAccountName: {{ include "routines.controller.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: controller
+          image: {{ include "routines.controller.image" . }}
+          imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
+          command:
+            - /manager
+          args:
+            - --leader-elect={{ .Values.controller.leaderElection.enabled }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- toYaml .Values.controller.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
