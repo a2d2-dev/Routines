@@ -53,6 +53,19 @@ gateway:
     size: 10Gi
     accessMode: ReadWriteOnce
 
+  # File queue tuning.
+  leaseTTL: "5m"
+  reaperInterval: "30s"
+  defaultWait: "30s"
+  maxWait: "2m"
+
+  # Optional: reference a K8s Secret containing the GitHub App webhook secret.
+  # If set, GATEWAY_GITHUB_WEBHOOK_SECRET is injected from the secret.
+  # githubWebhookSecret:
+  #   secretName: routines-github-webhook
+  #   secretKey: secret
+  githubWebhookSecret: {}
+
   serviceAccount:
     create: true
     name: ""
