@@ -1,135 +1,148 @@
-# routines
-// TODO(user): Add simple overview of use/purpose
+# Routines
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+**Self-hosted, K8s-native, session-resumable Claude Routines.**
 
-## Getting Started
+Routines is a Kubernetes operator that lets you schedule and trigger AI agents (Claude Code) using familiar K8s primitives. Define a `Routine` CR, attach a trigger (cron schedule, webhook, or GitHub event), and the operator handles agent lifecycle, PVC persistence, and credential injection.
+
+## Quick Start
 
 ### Prerequisites
-- go version v1.24.6+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+- Go v1.24+
+- Docker 17.03+
+- kubectl v1.19+
+- A Kubernetes cluster (local: kind or k3d works great)
+- Helm v3
 
-```sh
-make docker-build docker-push IMG=<some-registry>/routines:tag
-```
-
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
-
-**Install the CRDs into the cluster:**
+### 1. Install with Helm
 
 ```sh
-make install
+# Add the chart (once published)
+helm install routines oci://ghcr.io/a2d2-dev/charts/routines \
+  --namespace routines-system --create-namespace
+
+# Or install from source:
+make install      # install CRDs
+make deploy IMG=ghcr.io/a2d2-dev/routines:latest
 ```
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+### 2. Create your first Routine
+
+```yaml
+# daily-standup.yaml
+apiVersion: routines.a2d2.dev/v1alpha1
+kind: ScheduleTrigger
+metadata:
+  name: every-morning
+spec:
+  schedule: "0 9 * * 1-5"   # 09:00 UTC, Mon–Fri
+---
+apiVersion: routines.a2d2.dev/v1alpha1
+kind: Routine
+metadata:
+  name: daily-standup
+spec:
+  prompt:
+    inline: |
+      Check the open GitHub issues labeled "needs-triage", summarize them,
+      and post a comment on each with suggested next steps.
+  triggerRefs:
+    - kind: ScheduleTrigger
+      name: every-morning
+  maxDurationSeconds: 600
+```
 
 ```sh
-make deploy IMG=<some-registry>/routines:tag
+kubectl apply -f daily-standup.yaml
 ```
 
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
-
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
+### 3. Send a one-off message with the CLI
 
 ```sh
-kubectl apply -k config/samples/
+# Build the CLI
+make build-cli
+
+# List routines in the current namespace
+./bin/routines list
+
+# Send a manual prompt to the running agent
+./bin/routines msg daily-standup "Also check PRs opened in the last 24h"
+
+# View history
+./bin/routines history daily-standup
+
+# Stream agent logs
+./bin/routines logs daily-standup --follow
+
+# Suspend / resume
+./bin/routines suspend daily-standup
+./bin/routines resume daily-standup
 ```
 
->**NOTE**: Ensure that the samples has default values to test it out.
+## CLI Reference
 
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
+```
+Usage:
+  routines [command]
+
+Available Commands:
+  list        List Routine CRs in the current namespace
+  describe    Show Routine details and recent message history
+  msg         Enqueue a message to a Routine via the Gateway
+  history     Show Gateway message history for a Routine
+  logs        Stream or print agent pod logs for a Routine
+  suspend     Suspend a Routine (scales agent pod to zero, retains PVC)
+  resume      Resume a suspended Routine
+
+Global Flags:
+  --kubeconfig string       Path to kubeconfig (default: $KUBECONFIG)
+  -n, --namespace string    Kubernetes namespace (default: "default")
+  --gateway-url string      Gateway base URL (auto-detected from K8s Service if empty)
+```
+
+## Architecture Overview
+
+```
+Trigger (Schedule/Webhook/GitHub)
+         │
+         ▼
+    Gateway (HTTP)          ← /v1/enqueue
+         │  PVC file queue
+         ▼
+  Agent Runtime Pod         ← lease / ack / nack
+         │
+         ▼
+   Claude Code CLI          ← child process
+         │
+         ▼
+   Output / PR / Comment
+```
+
+- **Controller** — reconciles `Routine` CRs, manages StatefulSet + PVC lifecycle.
+- **Gateway** — HTTP server that queues messages and serves a lease/ack API.
+- **Agent Runtime** — long-polls the Gateway, launches Claude Code per message.
+- **CLI** — `kubectl`-style tool for human-in-the-loop interaction.
+
+## Development
 
 ```sh
-kubectl delete -k config/samples/
+# Run all unit tests
+make test
+
+# Run integration tests (requires envtest binaries)
+make test-integration
+
+# Build all binaries
+make build-all
+
+# Run linter
+make lint
 ```
-
-**Delete the APIs(CRDs) from the cluster:**
-
-```sh
-make uninstall
-```
-
-**UnDeploy the controller from the cluster:**
-
-```sh
-make undeploy
-```
-
-## Project Distribution
-
-Following the options to release and provide this solution to the users.
-
-### By providing a bundle with all YAML files
-
-1. Build the installer for the image built and published in the registry:
-
-```sh
-make build-installer IMG=<some-registry>/routines:tag
-```
-
-**NOTE:** The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without its
-dependencies.
-
-2. Using the installer
-
-Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
-the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/routines/<tag or branch>/dist/install.yaml
-```
-
-### By providing a Helm Chart
-
-1. Build the chart using the optional helm plugin
-
-```sh
-kubebuilder edit --plugins=helm/v2-alpha
-```
-
-2. See that a chart was generated under 'dist/chart', and users
-can obtain this solution from there.
-
-**NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
 
 ## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
 
-**NOTE:** Run `make help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
+Contributions welcome! Please open an issue first to discuss proposed changes.
 
 ## License
 
-Copyright 2026.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
+Copyright 2026. Licensed under the [Apache 2.0 License](LICENSE).

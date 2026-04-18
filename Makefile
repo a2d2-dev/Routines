@@ -61,6 +61,11 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet setup-envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell "$(ENVTEST)" use $(ENVTEST_K8S_VERSION) --bin-dir "$(LOCALBIN)" -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
 
+.PHONY: test-integration
+test-integration: manifests generate fmt vet setup-envtest ## Run integration tests (envtest, no cluster required).
+	KUBEBUILDER_ASSETS="$(shell "$(ENVTEST)" use $(ENVTEST_K8S_VERSION) --bin-dir "$(LOCALBIN)" -p path)" \
+	go test ./test/integration/... -v -count=1
+
 # TODO(user): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
 # The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
 # CertManager is installed by default; skip with:
@@ -107,6 +112,13 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/manager cmd/main.go
+
+.PHONY: build-cli
+build-cli: fmt vet ## Build the routines CLI binary.
+	go build -o bin/routines cmd/cli/main.go
+
+.PHONY: build-all
+build-all: build build-cli ## Build all binaries (manager + CLI).
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
