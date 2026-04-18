@@ -1,0 +1,20 @@
+apiVersion: v2
+name: routines
+description: |
+  Routines is a Kubernetes-native self-hosted implementation of Claude Routines.
+  It manages AI agents that are triggered by cron schedules, HTTP webhooks, or GitHub events.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - ai
+  - claude
+  - routines
+  - kubernetes
+  - operator
+home: https://github.com/a2d2-dev/routines
+sources:
+  - https://github.com/a2d2-dev/routines
+maintainers:
+  - name: a2d2-dev
+    url: https://github.com/a2d2-dev

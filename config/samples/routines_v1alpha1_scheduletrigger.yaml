@@ -1,0 +1,14 @@
+apiVersion: routines.a2d2.dev/v1alpha1
+kind: ScheduleTrigger
+metadata:
+  name: nightly-2am
+  namespace: default
+  labels:
+    app.kubernetes.io/name: routines
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  cron: "0 2 * * *"
+  timezone: "Asia/Shanghai"
+  routineRefs:
+    - name: nightly-issue-triage
+      namespace: default

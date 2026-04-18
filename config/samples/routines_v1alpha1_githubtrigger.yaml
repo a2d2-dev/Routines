@@ -1,0 +1,22 @@
+apiVersion: routines.a2d2.dev/v1alpha1
+kind: GitHubTrigger
+metadata:
+  name: pr-security-review
+  namespace: default
+  labels:
+    app.kubernetes.io/name: routines
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  installationRef:
+    name: a2d2-github-app
+  repositories:
+    - owner: acme
+      name: backend
+  events:
+    - pull_request
+  filter: |
+    event.action in ["opened", "synchronize"] &&
+    event.payload.pull_request.draft == false
+  routineRefs:
+    - name: pr-reviewer
+      namespace: default
